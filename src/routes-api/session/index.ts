@@ -1,15 +1,36 @@
-import FileCookieUtils from '<@nicbrasil/auth-keycloak>/utils/file-cookie.utils';
+import { KeycloakAuthService } from '<@nicbrasil/auth-keycloak>/service/keycloak-auth.service';
+import CookieUtils from '<@nicbrasil/auth-keycloak>/utils/cookie.utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 const handler = async (req: NextRequest) => {
-   const cookie = FileCookieUtils.readCookieFromRequest(req);
-
-   if (!cookie) {
+   const identity = CookieUtils.getIdentityByCookie(req);
+   if (!identity)
       return NextResponse.json({ message: 'no cookie' }, { status: 404 });
+
+   const cookieValue = CookieUtils.readCookie(identity);
+   if (!cookieValue)
+      return NextResponse.json({ message: 'no cookie' }, { status: 404 });
+
+   // Verifica se o token é válido
+   const isValidToken = await KeycloakAuthService.isValidToken(
+      cookieValue.access_token
+   );
+
+   // Se não for válido, tenta renovar o token
+   if (!isValidToken) {
+      try {
+         const newToken = await KeycloakAuthService.refreshToken(
+            cookieValue.refresh_token
+         );
+         CookieUtils.writeOnFile(identity, JSON.stringify(newToken));
+      } catch {
+         CookieUtils.deleteCookie(identity);
+         const url = new URL('/', KeycloakAuthService.getConfig('hostname'));
+         return NextResponse.redirect(url.toString());
+      }
    }
+
    return NextResponse.json({ message: 'ok' });
-   // console.log('Login callback', req);
-   // return NextResponse.redirect('/');
 };
 
 export { handler as GET, handler as POST };

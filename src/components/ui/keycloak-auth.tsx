@@ -1,7 +1,6 @@
 'use client';
 import { KeycloakAuthProvider } from '<@nicbrasil/auth-keycloak>/context/keycloak-auth.provider';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export type IKeycloakAuthProps = {
    children: React.ReactNode;
@@ -9,15 +8,8 @@ export type IKeycloakAuthProps = {
 };
 
 const KeycloakAuth: React.FC<IKeycloakAuthProps> = ({ children }) => {
-   const router = useRouter();
-   useEffect(() => {
-      fetch('/auth/session').then((res) => {
-         if (res.status === 404) {
-            alert('Você não está autenticado');
-            router.push('/auth/login');
-         }
-      });
-   }, [router]);
+   const [authenticated, setAuthenticated] = useState(false);
+
    const updateSession = async () => {
       throw new Error('updateSession must be used within a KeycloakProvider');
    };
@@ -25,21 +17,27 @@ const KeycloakAuth: React.FC<IKeycloakAuthProps> = ({ children }) => {
    const useFetch = () => {
       throw new Error('useFetch must be used within a KeycloakProvider');
    };
+   useEffect(() => {
+      fetch('/auth/session')
+         .then((response) => {
+            if (response.ok) {
+               return response.json();
+            }
 
-   const keycloak = {
-      getAccessToken: () => '',
-      login: () => {
-         alert('vamos fazer login');
-      },
-      logout: () => {},
-      isAuthenticated: () => false,
-   };
+            throw new Error('Not authenticated');
+         })
+         .then(() => {
+            setAuthenticated(true);
+         })
+         .catch(() => {
+            window.location.href = '/auth/login';
+         });
+   }, []);
 
    return (
-      <KeycloakAuthProvider value={{ keycloak, updateSession, useFetch }}>
-         {children}
+      <KeycloakAuthProvider value={{ updateSession, useFetch }}>
+         {authenticated ? children : 'Carregando...'}
       </KeycloakAuthProvider>
    );
 };
-
 export default KeycloakAuth;
