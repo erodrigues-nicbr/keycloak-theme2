@@ -2,7 +2,8 @@ import { KeycloakAuthService } from '<@nicbrasil/auth-keycloak>/service/keycloak
 import { NextRequest, NextResponse } from 'next/server';
 
 export const handle = async (req: NextRequest) => {
-   const path = req.nextUrl.pathname;
+   const path =
+      req.nextUrl.searchParams.get('redirect') || req.nextUrl.pathname;
    const loginUrl = KeycloakAuthService.getUrlToLogin(path);
    return NextResponse.redirect(loginUrl);
 };

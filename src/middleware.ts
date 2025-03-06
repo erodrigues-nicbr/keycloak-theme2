@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import CookieUtils from './utils/cookie.utils';
+import CacheUtils from './utils/cache.utils';
+import { IAccessTokenResponse } from './types/access-token-response.type';
 
 export async function middleware(req: NextRequest) {
    const url = req.nextUrl.clone();
 
+   console.log("caches", CacheUtils.getAll());
    // Mapeamento de prefixos de serviço para diferentes APIs
    const routes: { [key: string]: string | undefined } = {
       '/service/applications':
@@ -34,18 +37,23 @@ export async function middleware(req: NextRequest) {
    }
 
    if (req.headers.has('authorization')) {
-      const cookie = CookieUtils.readFileFromRequest(req);
-      console.log({ document: cookie });
-      if (cookie) {
-         // req.headers.set('authorization', 'Bearer ' + cookie.access_token);
+      const identity = CookieUtils.getCookieFromReq(req);
+      if (identity) {
+         const cache = CacheUtils.get(identity) as IAccessTokenResponse;
+         console.log('Token de autorização no header', cache);
+         if (cache)
+            req.headers.set('authorization', 'Bearer ' + cache.access_token);
       }
+   } else {
+      console.log('Sem token de autor  no header');
    }
 
-   // Monta a nova URL de destino (preservando o caminho restante e os query params)
+   // // Monta a nova URL de destino (preservando o caminho restante e os query params)
    const newUrl = `${apiUrl}${url.pathname.replace(matchedPrefix, '')}${
       url.search
    }`;
 
+   console.log(`🔀 Redirecionando para: ${newUrl}`);
    return NextResponse.rewrite(newUrl);
 }
 

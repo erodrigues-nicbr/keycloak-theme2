@@ -4,7 +4,11 @@ import { useEffect } from 'react';
 
 export default function Home() {
    useEffect(() => {
-      fetch('/service/applications/service-nestjs-tickets')
+      fetch('/service/applications/service-nestjs-tickets', {
+         headers: {
+            Authorization: 'Bearer',
+         },
+      })
          .then((res) => res.json())
          .then((data) => console.log(data));
    }, []);

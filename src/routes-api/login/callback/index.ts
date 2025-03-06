@@ -1,5 +1,9 @@
+import { COOKIE_NAME } from '<@nicbrasil/auth-keycloak>/contants';
 import { KeycloakAuthService } from '<@nicbrasil/auth-keycloak>/service/keycloak-auth.service';
+import { IAccessTokenResponse } from '<@nicbrasil/auth-keycloak>/types/access-token-response.type';
+import CacheUtils from '<@nicbrasil/auth-keycloak>/utils/cache.utils';
 import CookieUtils from '<@nicbrasil/auth-keycloak>/utils/cookie.utils';
+import Utils from '<@nicbrasil/auth-keycloak>/utils/utils';
 import { NextRequest, NextResponse } from 'next/server';
 
 const handler = async ({ req }: { req: NextRequest }) => {
@@ -30,12 +34,23 @@ const handler = async ({ req }: { req: NextRequest }) => {
       });
    }
 
-   // O token de acesso é retornado no corpo da resposta
-   const cookieValue = await CookieUtils.createNewFile(accessToken);
-   await CookieUtils.writeCookie(cookieValue);
+   const identity = Utils.generateDynamicId();
+   // Salva o token de acesso no cookie
+   await CookieUtils.setCookie({
+      name: COOKIE_NAME,
+      value: identity,
+      options: {
+         maxAge: accessToken.expires_in,
+      },
+   });
+   await CacheUtils.set<IAccessTokenResponse>(
+      identity,
+      accessToken,
+      accessToken.expires_in
+   );
 
-   // Redireciona para a página inicial
-   const url = new URL('/', KeycloakAuthService.getConfig('hostname'));
+   // Redireciona para a URL original (onde recebeu o primeiro aviso de login necessário)
+   const url = new URL(state ?? '/', KeycloakAuthService.getConfig('hostname'));
 
    return NextResponse.redirect(url);
 };

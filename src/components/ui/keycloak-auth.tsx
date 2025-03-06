@@ -30,7 +30,8 @@ const KeycloakAuth: React.FC<IKeycloakAuthProps> = ({ children }) => {
             setAuthenticated(true);
          })
          .catch(() => {
-            window.location.href = '/auth/login';
+            window.location.href =
+               '/auth/login?redirect=' + window.location.pathname;
          });
    }, []);
 
