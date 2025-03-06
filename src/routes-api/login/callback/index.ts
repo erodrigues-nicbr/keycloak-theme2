@@ -28,7 +28,7 @@ const handler = async ({ req }: { req: NextRequest }) => {
    });
 
    // Sem o token de acesso, não é possível prosseguir
-   if (!accessToken) {
+   if (!accessToken || !accessToken.access_token) {
       return NextResponse.json('Não foi possível obter o token de acesso', {
          status: 400,
       });
@@ -43,11 +43,9 @@ const handler = async ({ req }: { req: NextRequest }) => {
          maxAge: accessToken.expires_in,
       },
    });
-   await CacheUtils.set<IAccessTokenResponse>(
-      identity,
-      accessToken,
-      accessToken.expires_in
-   );
+   await CacheUtils.set<IAccessTokenResponse>(identity, accessToken, {
+      ttl: accessToken.expires_in,
+   });
 
    // Redireciona para a URL original (onde recebeu o primeiro aviso de login necessário)
    const url = new URL(state ?? '/', KeycloakAuthService.getConfig('hostname'));

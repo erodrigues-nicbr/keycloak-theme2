@@ -6,7 +6,6 @@ import { IAccessTokenResponse } from './types/access-token-response.type';
 export async function middleware(req: NextRequest) {
    const url = req.nextUrl.clone();
 
-   console.log("caches", CacheUtils.getAll());
    // Mapeamento de prefixos de serviço para diferentes APIs
    const routes: { [key: string]: string | undefined } = {
       '/service/applications':
@@ -39,7 +38,7 @@ export async function middleware(req: NextRequest) {
    if (req.headers.has('authorization')) {
       const identity = CookieUtils.getCookieFromReq(req);
       if (identity) {
-         const cache = CacheUtils.get(identity) as IAccessTokenResponse;
+         const cache = await CacheUtils.get<IAccessTokenResponse>(identity);
          console.log('Token de autorização no header', cache);
          if (cache)
             req.headers.set('authorization', 'Bearer ' + cache.access_token);

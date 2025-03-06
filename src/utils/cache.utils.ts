@@ -1,63 +1,38 @@
-import Memcached from 'memcached';
+import { CacheFactory, CacheType } from '../caches/cache.factory';
+import { ICache } from '../caches/types/cache.type';
 
-class CacheUtilsClass {
-   private cache: Memcached;
+class CacheUtilsClass implements ICache {
+   protected cache!: ICache;
    constructor() {
-      const memcachedHost = process.env.MEMCACHED_HOST || 'localhost:11211';
-      this.cache = new Memcached(memcachedHost);
+      CacheFactory.create(CacheType.MEMCACHED).then((cache: ICache) => {
+         this.cache = cache;
+      });
    }
 
-   async getAllKeys(): Promise<string[]> {
-      return new Promise((resolve, reject) => {
-         this.cache.stats((err, stats) => {
-            if (err) {
-               console.error('🚨 Erro ao buscar stats:', err);
-               return reject(err);
-            }
+   public async get<T>(key: string): Promise<T> {
+      return this.cache.get(key);
+   }
 
-            const keys: string[] = [];
-            let pendingSlabs = 0;
+   public async set<T>(
+      key: string,
+      value: T,
+      options?: { ttl: number }
+   ): Promise<void> {
+      return this.cache.set(key, value, options);
+   }
 
-            stats.forEach((serverStat) => {
-               for (const key in serverStat) {
-                  if (key.startsWith('items:') && key.endsWith(':number')) {
-                     const slabId = key.split(':')[1];
-                     pendingSlabs++;
+   public async del(key: string): Promise<void> {
+      return this.cache.del(key);
+   }
 
-                     this.cache.command(
-                        `stats cachedump ${slabId} 100`,
-                        (err, response) => {
-                           pendingSlabs--;
-
-                           if (!err && response) {
-                              response.split('\n').forEach((line) => {
-                                 const match = line.match(
-                                    /ITEM (.+) \[(\d+) b; (\d+) s\]/
-                                 );
-                                 if (match) keys.push(match[1]);
-                              });
-                           }
-
-                           if (pendingSlabs === 0) {
-                              resolve(keys);
-                           }
-                        }
-                     );
-                  }
-               }
-            });
-
-            if (pendingSlabs === 0) resolve(keys);
-         });
-      });
+   public setProvider(provider: ICache) {
+      this.cache = provider;
    }
 }
 
-const CacheUtils = new CacheUtilsClass();
+// Singleton - CacheUtils global para ser usado em toda a aplicação (mesmo em diferentes rotas')
+const globalForCache = global as unknown as { cacheUtils?: CacheUtilsClass };
+const CacheUtils = globalForCache.cacheUtils ?? new CacheUtilsClass();
+globalForCache.cacheUtils = CacheUtils;
 
-// 🚀 Teste
-CacheUtils.getAllKeys()
-   .then((keys) => {
-      console.log('🔑 Chaves encontradas no Memcached:', keys);
-   })
-   .catch(console.error);
+export default CacheUtils;

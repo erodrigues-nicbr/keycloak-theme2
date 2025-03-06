@@ -1,3 +1,4 @@
+import { ICache } from '../caches/types/cache.type';
 import { IAccessTokenResponse } from './access-token-response.type';
 
 export type IKeycloakService = {
@@ -17,5 +18,6 @@ export type IKeycloakConfig = {
    keycloakUrl: string;
    hostname: string;
    clientSecret?: string;
+   persistentProvider: ICache;
    scope?: string;
 };

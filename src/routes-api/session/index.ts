@@ -9,7 +9,7 @@ const handler = async (req: NextRequest) => {
    if (!cookieValue)
       return NextResponse.json({ message: 'no cookie' }, { status: 404 });
 
-   const cache = CacheUtils.get<IAccessTokenResponse>(cookieValue);
+   const cache = await CacheUtils.get<IAccessTokenResponse>(cookieValue);
    // Verifica se o token é válido
    if (!cache)
       return NextResponse.json({ message: 'no cookie' }, { status: 404 });
@@ -28,9 +28,12 @@ const handler = async (req: NextRequest) => {
             CacheUtils.set(cookieValue, newToken);
          }
       } catch {
-         CacheUtils.delete(cookieValue);
+         CacheUtils.del(cookieValue);
          CookieUtils.deleteCookie();
-         const url = new URL('/acesso-negado', KeycloakAuthService.getConfig('hostname'));
+         const url = new URL(
+            '/acesso-negado',
+            KeycloakAuthService.getConfig('hostname')
+         );
          return NextResponse.redirect(url.toString());
       }
    }

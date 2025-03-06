@@ -4,6 +4,7 @@ import {
    IKeycloakConfig,
    IKeycloakService,
 } from '../types/keycloak-service.type';
+import CacheUtils from '../utils/cache.utils';
 
 const endPoints: {
    [key: string]: string;
@@ -158,6 +159,7 @@ export class KeycloakAuthService extends _KeycloakService {
       if (!KeycloakAuthService.keycloakAuthService) {
          KeycloakAuthService.keycloakAuthService = new _KeycloakService(config);
       }
+      CacheUtils.setProvider(config.persistentProvider);
       return keycloakAuthApiRoutes;
    }
 
